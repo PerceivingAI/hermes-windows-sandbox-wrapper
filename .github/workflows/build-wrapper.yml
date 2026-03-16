@@ -1,0 +1,43 @@
+name: Build Wrapper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  build-windows-wrapper:
+    runs-on: windows-latest
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_RELEASE_OPT_LEVEL: "2"
+      CARGO_PROFILE_RELEASE_STRIP: "symbols"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-release-wrapper
+          cache-on-failure: true
+
+      - name: Build release wrapper
+        run: cargo build --locked --release --bin hermes-windows-sandbox-wrapper
+
+      - name: Upload wrapper artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-windows-sandbox-wrapper-x86_64-pc-windows-msvc
+          path: target/release/hermes-windows-sandbox-wrapper.exe
+          if-no-files-found: error
